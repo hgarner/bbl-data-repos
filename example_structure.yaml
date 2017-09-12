@@ -1,0 +1,6 @@
+"{project}":
+  data:
+    "{dataset}":
+      - raw
+      - dev
+      - release
