@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 import subprocess
 import re
 from pprint import pprint
+import configparser
+import argparse
 
 def addUser(username, access, users_file_path):
   tab = '    '
@@ -167,7 +169,16 @@ def processStructureFile(dir_structure_file):
   #       - raw
   #       - dev
   #       - release
-  dir_structure = yaml.load(dir_structure_file)
+  if not os.path.exists(os.path.abspath(dir_structure_file)):
+    raise ValueError('processStructureFile: dir_structure_file does not exist')
+  
+  with open(dir_structure_file, 'r') as dsf_open:
+    try:
+      dir_structure = yaml.load(dsf_open)
+    except Exception as e:
+      print('processStructureFile: dir_structure_file yaml processing failed')
+      raise e
+
   return dir_structure
 
 def genStructure(target_location, dir_structure, **kwargs):
@@ -211,6 +222,84 @@ def genStructure(target_location, dir_structure, **kwargs):
 
   except Exception as e:
     raise e
+
+def loadConfig(config_filename = './config/config.ini', config = None):
+  if config is None:
+    config = configparser.ConfigParser()
+  config.read(os.path.abspath(config_filename))
+  return config
+
+if __name__=="__main__":
+  # load config
+  # get args
+  # as minimum, project name is required
+  # get yaml structure file and process
+  
+  global config 
+
+  parser = argparse.ArgumentParser(description='Generate directory structure and user stuff for projects and datasets')
+  parser.add_argument('--structure_file', dest='structure_file', action='store', help='yaml file describing structure to create')
+  parser.add_argument('--target_dir', dest='target_dir', action='store', help='location to put new directory tree')
+  parser.add_argument('--config', dest='config_filename', action='store', help='optional config .ini file')
+  parser.add_argument('--dirnames', dest='dirnames', nargs='*', action='store', help='Dirnames to match placeholders in the structure file. These should be of the form placeholder:value, e.g. project:bigproject dataset:bigdata')
+  global args
+  args = parser.parse_args()
+  try:
+    config = loadConfig(args.config_filename, config)
+  except:
+    pass
+
+  if args.structure_file is not None:
+    structure_file = args.structure_file
+  else:
+    print('Please specify a yaml structure file to use')
+    exit(1)
+
+  target_dir = os.getcwd()
+  if args.target_dir is not None:
+    if os.path.exists(os.path.abspath(args.target_dir)):
+      target_dir = os.path.abspath(args.target_dir)
+    else:
+      print('target_dir does not appear to exist')
+      exit(1)
+
+  # process structure_file
+  try:
+    structure = processStructureFile(structure_file)
+  except:
+    print('Unable to process structure file')
+    exit(1)
+
+  # process dirnames (placeholders and values for template)
+  # would be better really to check template and require
+  # all placeholders to be present here
+  replacement_names = {}
+  if args.dirnames is not None:
+    for dir_val in args.dirnames:
+      placeholder = dir_val.split(':')
+      replacement_names[placeholder[0]] = placeholder[1]
+
+  # call genStructure to create dirs
+  # pass replacement_names as placeholders
+  try:
+    genStructure(target_dir, structure, **replacement_names)
+    print(
+      'Success: structure generated in {target_dir}'
+      .format(
+        target_dir=target_dir
+      )
+    )
+    exit(0)
+  except Exception as e:
+    print('Error: genStructure failed')
+    pprint(e)
+    exit(1)
+
+
+
+
+
+
 
         
 
