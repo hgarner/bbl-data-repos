@@ -1,7 +1,8 @@
 "{project}":
   data:
-    "{dataset}":
-      - raw
-      - dev
-      - release
-    users:
+    raw:
+      "raw_{dataset}"
+    dev:
+      "{dataset}"
+    release:
+  users:

@@ -186,6 +186,8 @@ def genStructure(target_location, dir_structure, **kwargs):
   if not os.path.exists(target_location):
     raise ValueError('(genStructure) target_location does not exist')
 
+  pprint(dir_structure)
+
   try:
     current_path = os.path.split(target_location)
 
@@ -193,6 +195,11 @@ def genStructure(target_location, dir_structure, **kwargs):
     if isinstance(dir_structure, list):
       dir_structure = {index_val[1]: index_val[0] for index_val in enumerate(dir_structure)}
     
+    # if it's a string, convert to a dict with the string as the key
+    # and None as the value
+    if isinstance(dir_structure, str):
+      dir_structure = {dir_structure: None}
+
     for directory, contents in dir_structure.items():
 
       # see if one of the kwargs matches a placeholder
@@ -217,7 +224,7 @@ def genStructure(target_location, dir_structure, **kwargs):
       if not os.path.exists(os.path.join(*new_path)):
         os.mkdir(os.path.join(*new_path))
 
-      if isinstance(contents, list) or isinstance(contents, dict):
+      if isinstance(contents, list) or isinstance(contents, dict) or (isinstance(contents, str) and contents != ''):
         genStructure(os.path.join(*new_path), contents, **kwargs)
 
   except Exception as e:
