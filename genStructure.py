@@ -188,6 +188,9 @@ def copyFile(src_file_dir, target_location, src_filename, target_filename = ''):
   if not os.path.exists(target_location):
     raise ValueError('(copyFile) target_location does not exist')
 
+  if os.path.exists(os.path.join(target_location, target_filename if target_filename != '' else src_filename)):
+    raise ValueError('(copyFile) target file {target_file} already exists at {target_location}'.format(target_file = target_filename if target_filename != '' else src_filename, target_location = target_location))
+
   try:
     if os.path.exists(os.path.join(src_file_dir, src_filename)):
       copy = shutil.copy(os.path.join(src_file_dir, src_filename), os.path.join(target_location, target_filename))
