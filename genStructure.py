@@ -181,12 +181,26 @@ def processStructureFile(dir_structure_file):
 
   return dir_structure
 
-def genStructure(target_location, dir_structure, **kwargs):
+def copyFile(src_file_dir, target_location, src_filename, target_filename = ''):
+  if not os.path.exists(src_file_dir):
+    raise ValueError('(copyFile) src_file_dir does not exist')
+
+  if not os.path.exists(target_location):
+    raise ValueError('(copyFile) target_location does not exist')
+
+  try:
+    if os.path.exists(os.path.join(src_file_dir, src_filename)):
+      copy = shutil.copy(os.path.join(src_file_dir, src_filename), os.path.join(target_location, target_filename))
+      return copy
+    else:
+      raise ValueError('(copyFile) file does not exist in src_file_dir')
+  except Exception as e:
+    raise e
+
+def genStructure(target_location, dir_structure, src_file_dir, **kwargs):
 
   if not os.path.exists(target_location):
     raise ValueError('(genStructure) target_location does not exist')
-
-  pprint(dir_structure)
 
   try:
     current_path = os.path.split(target_location)
@@ -202,30 +216,41 @@ def genStructure(target_location, dir_structure, **kwargs):
 
     for directory, contents in dir_structure.items():
 
-      # see if one of the kwargs matches a placeholder
-      # if so, replace
-      placeholder_match = re.search('\{([a-z0-9_A-Z\-]+)?\}', directory)
-      try:
-        if placeholder_match is not None and placeholder_match.groups(1) is not None:
-          #directory.format_map(kwargs)
-          for kw, val in kwargs.items():
-            if kw == placeholder_match.groups(1)[0]:
-              directory = directory.format(**{kw: val})
-              break
-          else:
-            # if no match, remove the {} to use the default placeholder name
-            directory = placeholder_match.groups(1)[0]
-      except IndexError:
-        pass
+      # first, see if the 'directory' key matches a file specifier
+      # if so, get the file and copy into current_path
+      file_match = re.search('\[([a-z0-9_A-Z\-\.]+)?\]([a-z0-9_A-Z\-\.]+)?', directory)
+      if file_match is not None and src_file_dir is not None and src_file_dir != '':
+        try:
+          if len(file_match.groups()) > 0:
+            copyFile(src_file_dir, target_location, file_match.group(1), file_match.group(2) if len(file_match.groups()) > 1 else '')
+        except Exception as e:
+          print('Error copying file {src_file} into {target}: {err}'.format(src_file=file_match.group(1), target=target_location,err=str(e)))
+          pass
+      else:
+        # now see if one of the kwargs matches a placeholder
+        # if so, replace
+        placeholder_match = re.search('\{([a-z0-9_A-Z\-]+)?\}', directory)
+        try:
+          if placeholder_match is not None and len(placeholder_match.groups()) > 0:
+            #directory.format_map(kwargs)
+            for kw, val in kwargs.items():
+              if kw == placeholder_match.groups(1)[0]:
+                directory = directory.format(**{kw: val})
+                break
+            else:
+              # if no match, remove the {} to use the default placeholder name
+              directory = placeholder_match.groups(1)[0]
+        except IndexError:
+          pass
 
-      new_path = current_path + (directory,)
+        new_path = current_path + (directory,)
 
-      # now create dir if not existing
-      if not os.path.exists(os.path.join(*new_path)):
-        os.mkdir(os.path.join(*new_path))
+        # now create dir if not existing
+        if not os.path.exists(os.path.join(*new_path)):
+          os.mkdir(os.path.join(*new_path))
 
-      if isinstance(contents, list) or isinstance(contents, dict) or (isinstance(contents, str) and contents != ''):
-        genStructure(os.path.join(*new_path), contents, **kwargs)
+        if isinstance(contents, list) or isinstance(contents, dict) or (isinstance(contents, str) and contents != ''):
+          genStructure(os.path.join(*new_path), contents, src_file_dir, **kwargs)
 
   except Exception as e:
     raise e
@@ -247,6 +272,7 @@ if __name__=="__main__":
   parser = argparse.ArgumentParser(description='Generate directory structure and user stuff for projects and datasets')
   parser.add_argument('--structure_file', dest='structure_file', action='store', help='yaml file describing structure to create')
   parser.add_argument('--target_dir', dest='target_dir', action='store', help='location to put new directory tree')
+  parser.add_argument('--src_file_dir', dest='src_file_dir', action='store', help='location to get files required (if needed)')
   parser.add_argument('--config', dest='config_filename', action='store', help='optional config .ini file')
   parser.add_argument('--dirnames', dest='dirnames', nargs='*', action='store', help='Dirnames to match placeholders in the structure file. These should be of the form placeholder:value, e.g. project:bigproject dataset:bigdata')
   global args
@@ -270,6 +296,14 @@ if __name__=="__main__":
       print('target_dir does not appear to exist')
       exit(1)
 
+  src_file_dir = ''
+  if args.src_file_dir is not None:
+    if os.path.exists(os.path.abspath(args.src_file_dir)):
+      src_file_dir = os.path.abspath(args.src_file_dir)
+    else:
+      print('src_file_dir does not appear to exist')
+      exit(1)
+
   # process structure_file
   try:
     structure = processStructureFile(structure_file)
@@ -289,7 +323,7 @@ if __name__=="__main__":
   # call genStructure to create dirs
   # pass replacement_names as placeholders
   try:
-    genStructure(target_dir, structure, **replacement_names)
+    genStructure(target_dir, structure, src_file_dir, **replacement_names)
     print(
       'Success: structure generated in {target_dir}'
       .format(

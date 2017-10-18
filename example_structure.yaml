@@ -3,6 +3,7 @@
     raw:
       "raw_{dataset}"
     dev:
-      "{dataset}"
+      "{dataset}":
+        "[readme.txt]readme.txt"
     release:
   users:

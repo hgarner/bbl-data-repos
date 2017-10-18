@@ -9,3 +9,4 @@ data/*
 api-access-examples
 users.yaml
 .fuse*
+files/*
