@@ -22,6 +22,8 @@ Each key/element is created as a directory. Placeholders, denoted using {}, allo
 
 Files can also be added by enclosing the filename in []. The rest of the text in the key (if provided) allows for the file to be renamed.
 
+Already existing dirs/files are ignored.
+
 **Usage**
 
 Call from terminal:
