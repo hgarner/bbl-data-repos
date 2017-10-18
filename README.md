@@ -1,5 +1,6 @@
 # bbl-data-repos
-Data repo creation for BBL
+
+**Data repo creation for BBL**
 
 Creates simple directory structure from a yaml input file (see example_structure.yaml).
 e.g.
@@ -22,6 +23,7 @@ Each key/element is created as a directory. Placeholders, denoted using {}, allo
 Files can also be added by enclosing the filename in []. The rest of the text in the key (if provided) allows for the file to be renamed.
 
 **Usage**
+
 Call from terminal:
 
 ```
@@ -29,6 +31,7 @@ python3 genStructure.py --target_dir=./ --structure_file=./example_structure.yam
 ```
 
 **Args**
+
 ***Required***
 
   - target_dir: the target location to place the generated dir structure
